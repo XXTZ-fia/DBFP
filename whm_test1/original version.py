@@ -27,6 +27,8 @@ class NLDataQuery:
         self.deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
         self.deepseek_api_url = "https://api.deepseek.com/v1/chat/completions"
         self.debug_mode = debug_mode
+        self.last_result = None  # 保存最后一次查询结果
+        self.last_query = None   # 保存最后一次查询语句
         
         if not self.deepseek_api_key:
             raise ValueError("请设置DEEPSEEK_API_KEY环境变量")
@@ -50,7 +52,7 @@ class NLDataQuery:
 你是一个智能金融数据查询助手。你需要分析用户的输入并做出判断：
 
 【判断规则】
-1. 如果用户是要查询具体的金融数据（如股价、指数、价格等），返回格式：
+1. 如果用户是要查询（如以查询开头）具体的金融数据（如股价、指数、价格等），返回格式：
    CODE|akshare代码
    
 2. 如果用户是在提问、寻求解释、咨询建议等，返回格式：
@@ -81,9 +83,6 @@ from rich import box)
 
 用户："贵州茅台的股票代码是什么？"
 返回：EXPLAIN|贵州茅台的股票代码是600519（上交所）。您可以询问我获取该股票的实时数据。
-
-用户："什么是市盈率？"
-返回：EXPLAIN|市盈率（PE Ratio）是股票价格与每股收益的比率，用于衡量股票估值水平。市盈率越高，说明投资者愿意为每一元盈利支付更高的价格，通常意味着市场对公司未来增长预期较高。
 
 用户："帮我分析一下今天的股市"
 返回：EXPLAIN|我可以帮您获取实时的股市数据。您想了解哪些具体指数或股票的信息？比如上证指数、深证成指、创业板指等。
@@ -161,6 +160,46 @@ from rich import box)
         
         return table
 
+    def save_result(self, filename: str = None) -> None:
+        """保存最后一次的查询结果到data文件夹"""
+        if self.last_result is None:
+            console.print("[yellow]⚠ 没有可保存的数据[/yellow]")
+            return
+        
+        try:
+            # 创建data文件夹（如果不存在）
+            data_folder = "data"
+            if not os.path.exists(data_folder):
+                os.makedirs(data_folder)
+            
+            # 生成默认文件名：问题+时间戳
+            if filename is None:
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                # 清理问题中的特殊字符，保留中文和英文
+                clean_query = "".join(c if c.isalnum() or c in "._- 中文" else "" for c in self.last_query)
+                # 限制文件名长度
+                clean_query = clean_query[:30]
+                filename = f"{clean_query}_{timestamp}.csv"
+            
+            # 确保文件名以.csv结尾
+            if not filename.endswith(".csv"):
+                filename += ".csv"
+            
+            # 完整文件路径
+            filepath = os.path.join(data_folder, filename)
+            
+            # 如果是DataFrame则保存为CSV
+            if isinstance(self.last_result, pd.DataFrame):
+                self.last_result.to_csv(filepath, index=False, encoding="utf-8-sig")
+                console.print(f"[green]✓ 数据已保存到: {os.path.abspath(filepath)}[/green]")
+            else:
+                # 其他类型的结果保存为文本
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write(str(self.last_result))
+                console.print(f"[green]✓ 数据已保存到: {os.path.abspath(filepath)}[/green]")
+        except Exception as e:
+            console.print(f"[red]✗ 保存失败: {str(e)}[/red]")
+
     def query(self, natural_language: str) -> None:
         """主函数：接收自然语言查询，返回数据结果"""
         # 显示处理状态
@@ -183,6 +222,7 @@ from rich import box)
                 border_style="green",
                 padding=(1, 2)
             ))
+            self.last_result = None  # 解释不保存
             return
         
         # 处理数据查询
@@ -192,6 +232,10 @@ from rich import box)
         with console.status("[cyan]正在获取数据...", spinner="dots"):
             result = self.execute_code(content)
         
+        # 保存查询结果和语句
+        self.last_result = result
+        self.last_query = natural_language
+        
         # 格式化输出结果
         if isinstance(result, str) and "出错" in result:
             console.print(Panel(
@@ -199,12 +243,14 @@ from rich import box)
                 title="[red]✗ 执行错误",
                 border_style="red"
             ))
+            self.last_result = None
         elif isinstance(result, pd.DataFrame):
             console.print(Panel(
                 self.format_dataframe(result),
                 title=f"[green]✓ 查询结果[/green] [dim]({len(result)} 条记录)[/dim]",
                 border_style="green"
             ))
+            console.print("[dim]输入 'save' 命令可保存此次查询结果[/dim]")
         else:
             console.print(Panel(
                 str(result),
@@ -226,6 +272,7 @@ def main():
         console.print("\n[bold]使用说明:[/bold]")
         console.print("• 您可以用自然语言查询金融数据")
         console.print("• 也可以提出问题寻求解释和建议")
+        console.print("• 输入 [yellow]'save'[/yellow] 保存最后一次的查询数据")
         console.print("• 输入 [yellow]'exit'[/yellow] 或 [yellow]'quit'[/yellow] 退出程序")
         console.print("• 输入 [yellow]'debug'[/yellow] 切换调试模式\n")
         
@@ -260,6 +307,11 @@ def main():
                     query_tool.debug_mode = not query_tool.debug_mode
                     status = "开启" if query_tool.debug_mode else "关闭"
                     console.print(f"[yellow]调试模式已{status}[/yellow]\n")
+                    continue
+                
+                if user_input.lower() == "save":
+                    query_tool.save_result()
+                    console.print()
                     continue
                 
                 # 执行查询
