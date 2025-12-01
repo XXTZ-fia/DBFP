@@ -2,6 +2,7 @@ import os
 import akshare as ak
 import requests
 import datetime
+import torch
 import pandas as pd
 from dotenv import load_dotenv
 from typing import Dict, Any, Optional, Tuple
@@ -9,6 +10,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.markdown import Markdown
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 from rich import box
 
 # 加载环境变量
@@ -212,6 +215,20 @@ from rich import box)
                 border_style="green",
                 padding=(1, 2)
             ))
+
+        def rag_info(self):
+            embedding = HuggingFaceEmbeddings(
+                model_name="all-MiniLM-L6-v2",
+                model_kwargs={'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
+                encode_kwargs={
+                    'normalize_embeddings': True,
+                    'batch_size': 32
+                }
+            )
+            vectorstore = FAISS.load_local("rag/faiss_index", embedding, allow_dangerous_deserialization=True)
+            retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+            docs = retriever.get_relevant_documents(' '.join(self.patient_info_list))
+            return docs
 
 def main():
     """主程序入口"""
