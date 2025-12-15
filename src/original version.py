@@ -36,14 +36,8 @@ class NLDataQuery:
         if not self.deepseek_api_key:
             raise ValueError("请设置DEEPSEEK_API_KEY环境变量")
 
-    def call_deepseek(self, prompt: str) -> Tuple[Optional[str], Optional[str]]:
-        """调用DeepSeek API解析自然语言查询
-        
-        Returns:
-            Tuple[query_type, content]: 查询类型和内容
-            - query_type: "code" (数据查询) 或 "explain" (解释说明) 或 None
-            - content: 生成的代码或解释文本
-        """
+    def call_deepseek(self, prompt: str, context: Optional[str] = None) -> Tuple[Optional[str], Optional[str]]:
+        """调用DeepSeek API解析自然语言查询，支持传入检索上下文"""
         try:
             headers = {
                 "Content-Type": "application/json",
@@ -90,12 +84,19 @@ from rich import box)
 用户："帮我分析一下今天的股市"
 返回：EXPLAIN|我可以帮您获取实时的股市数据。您想了解哪些具体指数或股票的信息？比如上证指数、深证成指、创业板指等。
 """
-            
+            # 如果有 RAG 上下文，把它附到用户输入后（裁切长度以免过长）
+            if context:
+                max_ctx = 3000
+                ctx = context if len(context) <= max_ctx else context[:max_ctx] + "..."
+                user_content = f"{prompt}\n\n参考资料（来自本地知识库，供回答参考）：\n{ctx}"
+            else:
+                user_content = prompt
+
             data = {
                 "model": "deepseek-chat",
                 "messages": [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": user_content}
                 ],
                 "temperature": 0.3
             }
@@ -118,7 +119,6 @@ from rich import box)
                 elif content.startswith("EXPLAIN|"):
                     return "explain", content[8:].strip()
                 else:
-                    # 兼容旧格式
                     return "code", content
             else:
                 return None, None
@@ -205,9 +205,23 @@ from rich import box)
 
     def query(self, natural_language: str) -> None:
         """主函数：接收自然语言查询，返回数据结果"""
-        # 显示处理状态
+        # 先用 RAG 检索相关文档并把内容拼成上下文
+        try:
+            with console.status("[cyan]正在检索参考文档（RAG）...", spinner="dots"):
+                try:
+                    docs = self.rag_info(natural_language)
+                except Exception:
+                    docs = []
+            if docs:
+                context_text = "\n\n---\n\n".join(d.page_content.replace("\n", " ")[:2000] for d in docs)
+            else:
+                context_text = None
+        except Exception:
+            context_text = None
+
+        # 显示处理状态并把 RAG 上下文传给 LLM
         with console.status("[cyan]正在分析您的查询...", spinner="dots"):
-            query_type, content = self.call_deepseek(natural_language)
+            query_type, content = self.call_deepseek(natural_language, context=context_text)
         
         if not query_type or not content:
             console.print(Panel(
@@ -262,19 +276,28 @@ from rich import box)
                 padding=(1, 2)
             ))
 
-        def rag_info(self):
-            embedding = HuggingFaceEmbeddings(
-                model_name="all-MiniLM-L6-v2",
-                model_kwargs={'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
-                encode_kwargs={
-                    'normalize_embeddings': True,
-                    'batch_size': 32
-                }
-            )
-            vectorstore = FAISS.load_local("rag/faiss_index", embedding, allow_dangerous_deserialization=True)
-            retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-            docs = retriever.get_relevant_documents(' '.join(self.patient_info_list))
-            return docs
+        def rag_info(self, query_text: str):
+            """基于本地 FAISS 向量库检索并返回文档列表"""
+            try:
+                embedding = HuggingFaceEmbeddings(
+                    model_name="all-MiniLM-L6-v2",
+                    model_kwargs={'device': 'cuda' if torch.cuda.is_available() else 'cpu'},
+                    encode_kwargs={
+                        'normalize_embeddings': True,
+                        'batch_size': 32
+                    }
+                )
+                index_path = "rag/faiss_index"
+                if not os.path.exists(index_path):
+                    console.print("[yellow]⚠ 未找到 RAG 向量索引：rag/faiss_index[/yellow]")
+                    return []
+                vectorstore = FAISS.load_local(index_path, embedding, allow_dangerous_deserialization=True)
+                retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+                docs = retriever.get_relevant_documents(query_text)
+                return docs
+            except Exception as e:
+                console.print(f"[yellow]RAG 检索失败: {e}[/yellow]")
+                return []
 
 def main():
     """主程序入口"""
