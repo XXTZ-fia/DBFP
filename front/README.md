@@ -4,7 +4,8 @@
 
 A simple cryptocurrency price app pulling price data from the [Binance API](https://www.binance.com/en/support/faq/360002502072).
 
-<img src="https://user-images.githubusercontent.com/27242399/141119915-106fa449-889c-4369-a585-75d3bafa704c.png" width="650"/>
+<img width="783" height="346" alt="image" src="https://github.com/user-attachments/assets/63f4e894-907e-40cb-b763-95ffbd7140a9" />
+<img width="775" height="430" alt="image" src="https://github.com/user-attachments/assets/bfaf583b-3735-423a-a1f3-ca4288155799" />
 
 
 
