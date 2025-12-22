@@ -1,0 +1,26 @@
+# 金融数据智能查询助手 - 依赖列表
+
+# Web 框架
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# 数据处理
+pandas>=2.0.0
+numpy>=1.24.0
+
+# 金融数据接口
+akshare>=1.12.0
+
+# 环境变量
+python-dotenv>=1.0.0
+
+# HTTP 请求
+requests>=2.31.0
+
+# (可选) RAG 相关依赖
+# torch>=2.0.0
+# langchain>=0.1.0
+# langchain-huggingface>=0.0.1
+# langchain-community>=0.0.1
+# faiss-cpu>=1.7.4
+# sentence-transformers>=2.2.0

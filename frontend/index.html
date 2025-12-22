@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinQuery - 金融数据智能查询助手</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a2332;
+            --bg-card-hover: #232f42;
+            --accent-gold: #f0b90b;
+            --accent-gold-light: #fcd535;
+            --accent-green: #0ecb81;
+            --accent-red: #f6465d;
+            --accent-blue: #1e90ff;
+            --text-primary: #eaecef;
+            --text-secondary: #848e9c;
+            --text-muted: #5e6673;
+            --border-color: #2b3544;
+            --gradient-gold: linear-gradient(135deg, #f0b90b 0%, #fcd535 100%);
+            --gradient-dark: linear-gradient(180deg, #0a0e17 0%, #111827 100%);
+            --shadow-glow: 0 0 40px rgba(240, 185, 11, 0.15);
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gradient-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 背景装饰 */
+        .bg-decoration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-decoration::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(240, 185, 11, 0.03) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(30, 144, 255, 0.03) 0%, transparent 50%);
+            animation: bgFloat 20s ease-in-out infinite;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(240, 185, 11, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(240, 185, 11, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.5;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-20px, 20px) rotate(1deg); }
+        }
+
+        /* 主容器 */
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 头部 */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-gold);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--bg-primary);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: 700;
+            background: var(--gradient-gold);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 1px;
+        }
+
+        .logo-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-btn {
+            padding: 10px 20px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-btn:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+            background: rgba(240, 185, 11, 0.05);
+        }
+
+        /* 主内容区 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+            flex: 1;
+        }
+
+        /* 查询面板 */
+        .query-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* 搜索框区域 */
+        .search-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+        }
+
+        .search-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-title i {
+            color: var(--accent-gold);
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 18px 60px 18px 20px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 4px rgba(240, 185, 11, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            background: var(--gradient-gold);
+            border: none;
+            border-radius: 10px;
+            color: var(--bg-primary);
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-50%) scale(1.05);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: translateY(-50%);
+        }
+
+        .search-btn .loading {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 快捷查询 */
+        .quick-queries {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .quick-query-btn {
+            padding: 8px 16px;
+            background: rgba(240, 185, 11, 0.08);
+            border: 1px solid rgba(240, 185, 11, 0.2);
+            border-radius: 20px;
+            color: var(--accent-gold);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quick-query-btn:hover {
+            background: rgba(240, 185, 11, 0.15);
+            border-color: var(--accent-gold);
+            transform: translateY(-2px);
+        }
+
+        /* 结果区域 */
+        .result-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+            overflow: hidden;
+        }
+
+        .result-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .result-title {
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-title i {
+            color: var(--accent-blue);
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .result-action-btn {
+            padding: 8px 14px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .result-action-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .result-action-btn.save-btn:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+        }
+
+        .result-content {
+            flex: 1;
+            overflow: auto;
+            padding: 24px;
+        }
+
+        /* 欢迎状态 */
+        .welcome-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .welcome-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            opacity: 0.3;
+        }
+
+        .welcome-text {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .welcome-hint {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* 加载状态 */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 16px;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* 解释结果 */
+        .explain-result {
+            padding: 20px;
+            background: rgba(30, 144, 255, 0.05);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 0 12px 12px 0;
+            line-height: 1.8;
+        }
+
+        .explain-result p {
+            margin-bottom: 12px;
+        }
+
+        .explain-result p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 数据表格 */
+        .data-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .data-table th {
+            padding: 14px 16px;
+            text-align: left;
+            background: rgba(240, 185, 11, 0.08);
+            color: var(--accent-gold);
+            font-weight: 500;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            border-bottom: 2px solid var(--accent-gold);
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(240, 185, 11, 0.03);
+        }
+
+        .data-table .number {
+            text-align: right;
+        }
+
+        .data-table .positive {
+            color: var(--accent-green);
+        }
+
+        .data-table .negative {
+            color: var(--accent-red);
+        }
+
+        .data-count {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .data-count i {
+            color: var(--accent-gold);
+        }
+
+        /* 代码显示 */
+        .code-block {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--accent-gold);
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+        }
+
+        .code-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        /* 错误状态 */
+        .error-result {
+            padding: 20px;
+            background: rgba(246, 70, 93, 0.08);
+            border-left: 4px solid var(--accent-red);
+            border-radius: 0 12px 12px 0;
+            color: var(--accent-red);
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .sidebar-card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar-card-header i {
+            color: var(--accent-gold);
+        }
+
+        .sidebar-card-content {
+            padding: 16px 20px;
+        }
+
+        /* 功能说明 */
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .feature-item:last-child {
+            border-bottom: none;
+        }
+
+        .feature-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(240, 185, 11, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-gold);
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .feature-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .feature-text strong {
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* 历史记录 */
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-item:hover {
+            padding-left: 8px;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-name {
+            font-size: 13px;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .history-download {
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .history-download:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* Toast 通知 */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: var(--shadow-card);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+            min-width: 280px;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .toast.success i {
+            color: var(--accent-green);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--accent-red);
+        }
+
+        .toast.error i {
+            color: var(--accent-red);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .sidebar {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-queries {
+                justify-content: center;
+            }
+
+            .app-container {
+                padding: 12px;
+            }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-decoration">
+        <div class="grid-overlay"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="logo-text">
+                    <span class="logo-title">FinQuery</span>
+                    <span class="logo-subtitle">金融数据智能查询助手</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="header-btn" onclick="loadHistory()">
+                    <i class="fas fa-history"></i>
+                    刷新历史
+                </button>
+                <button class="header-btn" onclick="toggleDebug()">
+                    <i class="fas fa-code"></i>
+                    <span id="debugBtnText">调试模式</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主内容 -->
+        <main class="main-content">
+            <!-- 查询面板 -->
+            <div class="query-panel">
+                <!-- 搜索区域 -->
+                <section class="search-section">
+                    <h2 class="search-title">
+                        <i class="fas fa-search"></i>
+                        输入您的查询
+                    </h2>
+                    <div class="search-box">
+                        <input 
+                            type="text" 
+                            class="search-input" 
+                            id="queryInput"
+                            placeholder="例如：获取上证指数最近10天的数据、茅台的股票代码是多少..."
+                            onkeypress="handleKeyPress(event)"
+                        >
+                        <button class="search-btn" id="searchBtn" onclick="executeQuery()">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                    <div class="quick-queries">
+                        <button class="quick-query-btn" onclick="quickQuery('获取上证指数最近10天的数据')">
+                            📈 上证指数
+                        </button>
+                        <button class="quick-query-btn" onclick="quickQuery('查询贵州茅台最近7天股价')">
+                            🍷 贵州茅台
+                        </button>
+                        <button class="quick-query-btn" onclick="quickQuery('查询比亚迪最近5天股价')">
+                            🚗 比亚迪
+                        </button>
+                        <button class="quick-query-btn" onclick="quickQuery('什么是市盈率？')">
+                            ❓ 什么是市盈率
+                        </button>
+                        <button class="quick-query-btn" onclick="quickQuery('获取国内成品油价格调整信息')">
+                            ⛽ 油价信息
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 结果区域 -->
+                <section class="result-section">
+                    <div class="result-header">
+                        <span class="result-title">
+                            <i class="fas fa-database"></i>
+                            查询结果
+                        </span>
+                        <div class="result-actions" id="resultActions" style="display: none;">
+                            <button class="result-action-btn" onclick="copyResult()">
+                                <i class="fas fa-copy"></i>
+                                复制
+                            </button>
+                            <button class="result-action-btn save-btn" onclick="saveResult()">
+                                <i class="fas fa-download"></i>
+                                保存CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="result-content" id="resultContent">
+                        <div class="welcome-state">
+                            <div class="welcome-icon">📊</div>
+                            <p class="welcome-text">欢迎使用 FinQuery 金融数据查询助手</p>
+                            <p class="welcome-hint">输入自然语言查询，或点击上方快捷按钮开始体验</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 侧边栏 -->
+            <aside class="sidebar">
+                <!-- 功能说明 -->
+                <div class="sidebar-card">
+                    <div class="sidebar-card-header">
+                        <i class="fas fa-lightbulb"></i>
+                        功能说明
+                    </div>
+                    <div class="sidebar-card-content">
+                        <ul class="feature-list">
+                            <li class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                                <div class="feature-text">
+                                    <strong>数据查询</strong>
+                                    用自然语言查询股票、指数等金融数据
+                                </div>
+                            </li>
+                            <li class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="feature-text">
+                                    <strong>智能问答</strong>
+                                    询问金融概念，获得专业解答
+                                </div>
+                            </li>
+                            <li class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-save"></i>
+                                </div>
+                                <div class="feature-text">
+                                    <strong>数据导出</strong>
+                                    将查询结果保存为 CSV 文件
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 历史记录 -->
+                <div class="sidebar-card">
+                    <div class="sidebar-card-header">
+                        <i class="fas fa-clock"></i>
+                        历史数据
+                    </div>
+                    <div class="sidebar-card-content">
+                        <div class="history-list" id="historyList">
+                            <div class="empty-history">
+                                <i class="fas fa-folder-open"></i>
+                                <p>暂无保存的数据</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 数据来源 -->
+                <div class="sidebar-card">
+                    <div class="sidebar-card-header">
+                        <i class="fas fa-info-circle"></i>
+                        关于
+                    </div>
+                    <div class="sidebar-card-content">
+                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                            本系统基于 <strong style="color: var(--accent-gold);">AKShare</strong> 金融数据接口
+                            和 <strong style="color: var(--accent-blue);">DeepSeek AI</strong> 智能分析，
+                            为您提供便捷的金融数据查询服务。
+                        </p>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // 全局变量
+        let debugMode = false;
+        let currentResult = null;
+        let currentQuery = '';
+
+        // API 基础地址
+        const API_BASE = '';
+
+        // 页面加载时获取历史记录
+        document.addEventListener('DOMContentLoaded', () => {
+            loadHistory();
+        });
+
+        // 回车键执行查询
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                executeQuery();
+            }
+        }
+
+        // 快捷查询
+        function quickQuery(query) {
+            document.getElementById('queryInput').value = query;
+            executeQuery();
+        }
+
+        // 执行查询
+        async function executeQuery() {
+            const input = document.getElementById('queryInput');
+            const query = input.value.trim();
+            
+            if (!query) {
+                showToast('请输入查询内容', 'error');
+                return;
+            }
+
+            currentQuery = query;
+            
+            // 显示加载状态
+            showLoading();
+            setButtonLoading(true);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentResult = data;
+                    renderResult(data);
+                } else {
+                    renderError(data.error, data.code);
+                }
+            } catch (error) {
+                renderError('网络请求失败，请检查后端服务是否运行');
+            } finally {
+                setButtonLoading(false);
+            }
+        }
+
+        // 显示加载状态
+        function showLoading() {
+            const content = document.getElementById('resultContent');
+            content.innerHTML = `
+                <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">正在分析您的查询...</div>
+                </div>
+            `;
+            document.getElementById('resultActions').style.display = 'none';
+        }
+
+        // 设置按钮加载状态
+        function setButtonLoading(loading) {
+            const btn = document.getElementById('searchBtn');
+            if (loading) {
+                btn.innerHTML = '<i class="fas fa-spinner loading"></i>';
+                btn.disabled = true;
+            } else {
+                btn.innerHTML = '<i class="fas fa-arrow-right"></i>';
+                btn.disabled = false;
+            }
+        }
+
+        // 渲染结果
+        function renderResult(data) {
+            const content = document.getElementById('resultContent');
+            const actions = document.getElementById('resultActions');
+
+            if (data.type === 'explain') {
+                // 解释类结果
+                content.innerHTML = `
+                    <div class="explain-result">
+                        ${formatExplanation(data.content)}
+                    </div>
+                `;
+                actions.style.display = 'none';
+            } else if (data.type === 'data') {
+                // 数据表格
+                let html = `<div class="data-table-wrapper">`;
+                html += `<table class="data-table">`;
+                html += `<thead><tr>`;
+                
+                data.columns.forEach(col => {
+                    html += `<th>${col}</th>`;
+                });
+                
+                html += `</tr></thead><tbody>`;
+                
+                data.data.forEach(row => {
+                    html += `<tr>`;
+                    data.columns.forEach(col => {
+                        const value = row[col];
+                        const isNumber = typeof value === 'number';
+                        const className = isNumber ? 'number' : '';
+                        let displayValue = value;
+                        
+                        // 格式化数字
+                        if (isNumber) {
+                            if (Number.isInteger(value)) {
+                                displayValue = value.toLocaleString();
+                            } else {
+                                displayValue = value.toFixed(2);
+                            }
+                            
+                            // 检查是否是涨跌相关字段
+                            const colLower = col.toLowerCase();
+                            if (colLower.includes('涨') || colLower.includes('跌') || 
+                                colLower.includes('change') || colLower.includes('pct')) {
+                                if (value > 0) {
+                                    html += `<td class="number positive">+${displayValue}</td>`;
+                                    return;
+                                } else if (value < 0) {
+                                    html += `<td class="number negative">${displayValue}</td>`;
+                                    return;
+                                }
+                            }
+                        }
+                        
+                        html += `<td class="${className}">${displayValue}</td>`;
+                    });
+                    html += `</tr>`;
+                });
+                
+                html += `</tbody></table></div>`;
+                
+                html += `<div class="data-count">
+                    <i class="fas fa-chart-bar"></i>
+                    共 ${data.total} 条记录
+                </div>`;
+                
+                // 调试模式显示代码
+                if (debugMode && data.code) {
+                    html += `
+                        <div class="code-block">
+                            <div class="code-label">生成的代码</div>
+                            ${data.code}
+                        </div>
+                    `;
+                }
+                
+                content.innerHTML = html;
+                actions.style.display = 'flex';
+            } else if (data.type === 'value') {
+                // 简单值
+                content.innerHTML = `
+                    <div class="explain-result">
+                        ${data.content}
+                    </div>
+                    ${debugMode && data.code ? `
+                        <div class="code-block">
+                            <div class="code-label">生成的代码</div>
+                            ${data.code}
+                        </div>
+                    ` : ''}
+                `;
+                actions.style.display = 'none';
+            }
+        }
+
+        // 格式化解释内容
+        function formatExplanation(text) {
+            // 简单的格式化：将换行转为段落
+            return text.split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
+        }
+
+        // 渲染错误
+        function renderError(error, code) {
+            const content = document.getElementById('resultContent');
+            let html = `
+                <div class="error-result">
+                    <i class="fas fa-exclamation-circle"></i>
+                    ${error}
+                </div>
+            `;
+            
+            if (debugMode && code) {
+                html += `
+                    <div class="code-block">
+                        <div class="code-label">生成的代码</div>
+                        ${code}
+                    </div>
+                `;
+            }
+            
+            content.innerHTML = html;
+            document.getElementById('resultActions').style.display = 'none';
+        }
+
+        // 保存结果
+        async function saveResult() {
+            if (!currentResult || currentResult.type !== 'data') {
+                showToast('没有可保存的数据', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        queryName: currentQuery,
+                        data: currentResult.data
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`数据已保存: ${data.filename}`, 'success');
+                    loadHistory();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('保存失败', 'error');
+            }
+        }
+
+        // 复制结果
+        function copyResult() {
+            if (!currentResult) return;
+
+            let text = '';
+            if (currentResult.type === 'data') {
+                // 转换为制表符分隔的文本
+                text = currentResult.columns.join('\t') + '\n';
+                currentResult.data.forEach(row => {
+                    text += currentResult.columns.map(col => row[col]).join('\t') + '\n';
+                });
+            } else {
+                text = currentResult.content;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('已复制到剪贴板', 'success');
+            }).catch(() => {
+                showToast('复制失败', 'error');
+            });
+        }
+
+        // 加载历史记录
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/api/history`);
+                const data = await response.json();
+
+                const list = document.getElementById('historyList');
+
+                if (data.success && data.files.length > 0) {
+                    list.innerHTML = data.files.map(file => `
+                        <div class="history-item">
+                            <div class="history-info">
+                                <div class="history-name">${file.filename}</div>
+                                <div class="history-meta">${file.modified} · ${formatFileSize(file.size)}</div>
+                            </div>
+                            <button class="history-download" onclick="downloadFile('${file.filename}')" title="下载">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = `
+                        <div class="empty-history">
+                            <i class="fas fa-folder-open"></i>
+                            <p>暂无保存的数据</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('加载历史记录失败:', error);
+            }
+        }
+
+        // 下载文件
+        function downloadFile(filename) {
+            window.open(`${API_BASE}/api/download/${filename}`, '_blank');
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // 切换调试模式
+        function toggleDebug() {
+            debugMode = !debugMode;
+            const btnText = document.getElementById('debugBtnText');
+            btnText.textContent = debugMode ? '关闭调试' : '调试模式';
+            showToast(`调试模式已${debugMode ? '开启' : '关闭'}`, 'success');
+            
+            // 如果有当前结果，重新渲染
+            if (currentResult) {
+                renderResult(currentResult);
+            }
+        }
+
+        // 显示 Toast 通知
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
